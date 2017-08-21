@@ -19,13 +19,18 @@ class Policy
     friend class EA;
     friend class Parameters;
     friend class Simulator;
-    friend class Individual;
     
 protected:
     
     
 public:
 
+    //Include all needed information about any policy here
+    
+    
+    vector<double> object_fitness;
+    double PaCcET_fitness;
+    int age;
     
     
 private:

@@ -23,7 +23,6 @@
 
 #include "Parameters.hpp"
 #include "Policy.hpp"
-#include "Individual.hpp"
 #include "Simulator.hpp"
 #include "EA.hpp"
 
@@ -34,5 +33,6 @@ int main()
     Parameters P;
     EA E;
     E.pP = &P;
-    cout << "END" << endl;
+    E.Run_Program();
+    cout << "END PROGRAM" << endl;
 }

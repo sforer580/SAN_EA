@@ -18,17 +18,30 @@ class Simulator
 {
     friend class EA;
     friend class Parameters;
-    friend class Individual;
     friend class Policy;
     
 protected:
     
     
 public:
+    Parameters* pP;
     
+    void Simulate(Policy* pPo);
     
     
 private:
 };
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+//-------------------------------------------------------------------------
+//Runs the entire simulation process
+void Simulator::Simulate(Policy* pPo)
+{
+    
+}
+
 
 #endif /* Simulator_hpp */
