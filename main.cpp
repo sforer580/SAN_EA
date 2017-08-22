@@ -30,6 +30,7 @@
 
 int main()
 {
+    srand(time(NULL));
     Parameters P;
     EA E;
     E.pP = &P;

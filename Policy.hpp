@@ -32,6 +32,9 @@ public:
     double PaCcET_fitness;
     int age;
     
+    vector<double> x_val;
+    double output;
+    
     
 private:
 };

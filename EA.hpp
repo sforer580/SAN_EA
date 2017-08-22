@@ -49,6 +49,7 @@ public:
     struct Less_Than_Policy_PaCcET_Fitness;
     void Sort_Policies_By_PaCcET_Fitness();
     void EA_Process();
+    void Output_Best_Policy_Info(int gen);
     void Run_Program();
     
 private:
@@ -70,6 +71,12 @@ void EA::Build_Population()
         for (int o=0; o<pP->num_object; o++)
         {
             pol.at(i).object_fitness.push_back(0);
+            pol.at(i).output = 10000000;
+            for (int j=0; j<pP->num_x_val; j++)
+            {
+                pol.at(i).x_val.push_back(pP->x_val_min + (rand() / double(RAND_MAX))*(pP->x_val_max - pP->x_val_min));
+            }
+            assert(pol.at(i).x_val.size() == pP->num_x_val);
         }
     }
     assert(pol.size() == pP->num_pol);
@@ -96,7 +103,15 @@ void EA::Run_Simulation()
 //Evaluates each policies fitness scores for each objective
 void EA::Evaluate()
 {
-    //This is where additional evaluation steps can occur like PaCcET
+    for (int i=0; i<pP->num_pol; i++)
+    {
+        double diff;
+        diff = abs(pP->target_val - pol.at(i).output);
+        pol.at(i).object_fitness.at(0) = diff;
+        //This is where additional evaluation steps can occur like PaCcET
+        //For now the PaCcET fitness is equal to the objective fitness
+        pol.at(i).PaCcET_fitness = pol.at(i).object_fitness.at(0);
+    }
 }
 
 
@@ -150,6 +165,26 @@ void EA::Downselect()
 void EA::Mutation(Policy &M)
 {
    //This is where the policy is slightly mutated
+    
+    for (int j=0; j<pP->num_x_val; j++)
+    {
+        double r = ((double)rand()/RAND_MAX);
+        if (r <= pP->mutation_rate)
+        {
+            double R1 = ((double)rand()/RAND_MAX) * pP->mutate_range;
+            double R2 = ((double)rand()/RAND_MAX) * pP->mutate_range;
+            M.x_val.at(j) = M.x_val.at(j) + (R1-R2);
+            if (M.x_val.at(j) < pP->x_val_min)
+            {
+                M.x_val.at(j) = pP->x_val_min;
+            }
+            if (M.x_val.at(j) > pP->x_val_max)
+            {
+                M.x_val.at(j) = pP->x_val_max;
+            }
+        }
+        assert(M.x_val.at(j) >= pP->x_val_min && M.x_val.at(j) <= pP->x_val_max);
+    }
 }
 
 
@@ -206,6 +241,56 @@ void EA::Sort_Policies_By_PaCcET_Fitness()
 
 
 //-------------------------------------------------------------------------
+//Outputs the best policies information
+void EA::Output_Best_Policy_Info(int gen)
+{
+    if (gen < pP->gen_max-1)
+    {
+        cout << "GENERATION" << "\t" << gen << endl;
+        cout << "BEST POLICY" << endl;
+        cout << "TARGET" << "\t" << pP->target_val << endl;
+        cout << "OUTPUT" << "\t" << pol.at(0).output << endl;
+        cout << "X_VALS" << "\t";
+        for (int i=0; i<pP->num_x_val; i++)
+        {
+            cout << pol.at(0).x_val.at(i) << "\t";
+        }
+        cout << endl;
+        cout << "PaCcET FITNESS" << "\t" << pol.at(0).PaCcET_fitness << endl;
+        cout << "OBJECTIVE FITNESS" << "\t";
+        for (int o=0; o<pP->num_object; o++)
+        {
+            cout << pol.at(0).object_fitness.at(0) << "\t";
+        }
+        cout << endl;
+        cout << endl;
+    }
+    
+    else
+    {
+        cout << "FINAL GENERATION" << endl;
+        cout << "BEST POLICY" << endl;
+        cout << "TARGET" << "\t" << pP->target_val << endl;
+        cout << "OUTPUT" << "\t" << pol.at(0).output << endl;
+        cout << "X_VALS" << "\t";
+        for (int i=0; i<pP->num_x_val; i++)
+        {
+            cout << pol.at(0).x_val.at(i) << "\t";
+        }
+        cout << endl;
+        cout << "PaCcET FITNESS" << "\t" << pol.at(0).PaCcET_fitness << endl;
+        cout << "OBJECTIVE FITNESS" << "\t";
+        for (int o=0; o<pP->num_object; o++)
+        {
+            cout << pol.at(0).object_fitness.at(0) << "\t";
+        }
+        cout << endl;
+        cout << endl;
+    }
+}
+
+
+//-------------------------------------------------------------------------
 //Runs the entire program
 void EA::Run_Program()
 {
@@ -214,41 +299,19 @@ void EA::Run_Program()
     {
         if (gen < pP->gen_max-1)
         {
-            cout << "GENERATION" << "\t" << gen << endl;
             EA_Process();
             Sort_Policies_By_PaCcET_Fitness();
-            cout << "BEST FITNESS" << endl;
-            cout << "PaCcET FITNESS" << "\t" << pol.at(0).PaCcET_fitness << endl;
-            cout << "OBJECTIVE FITNESS" << "\t";
-            for (int o=0; o<pP->num_object; o++)
-            {
-                cout << pol.at(0).object_fitness.at(0) << "\t";
-            }
-            cout << endl;
-            cout << endl;
+            Output_Best_Policy_Info(gen);
         }
         else
         {
             Run_Simulation();
             Evaluate();
             Sort_Policies_By_PaCcET_Fitness();
-            cout << "FINAL GENERATION" << endl;
-            cout << "BEST FITNESS" << endl;
-            cout << "PaCcET FITNESS" << "\t" << pol.at(0).PaCcET_fitness << endl;
-            cout << "OBJECTIVE FITNESS" << "\t";
-            for (int o=0; o<pP->num_object; o++)
-            {
-                cout << pol.at(0).object_fitness.at(0) << "\t";
-            }
-            cout << endl;
-            cout << endl;
+            Output_Best_Policy_Info(gen);
         }
     }
 }
-
-
-
-
 
 
 #endif /* EA_hpp */

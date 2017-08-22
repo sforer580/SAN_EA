@@ -40,7 +40,9 @@ private:
 //Runs the entire simulation process
 void Simulator::Simulate(Policy* pPo)
 {
-    
+    double sum;
+    sum = (pPo->x_val.at(0)*pPo->x_val.at(0)) + cos(pPo->x_val.at(1)) + sin(pPo->x_val.at(2)) + exp(pPo->x_val.at(3));
+    pPo->output = sum;
 }
 
 
