@@ -38,6 +38,9 @@ public:
     Parameters* pP;
     
     vector<Policy> pol;
+    vector<double> best_fitness;
+    vector<double> ave_fitness;
+    vector<double> worst_fitness;
 
     void Build_Population();
     void Run_Simulation();
@@ -50,6 +53,9 @@ public:
     void Sort_Policies_By_PaCcET_Fitness();
     void EA_Process();
     void Output_Best_Policy_Info(int gen);
+    void Store_Policy_Data();
+    void Write_Data_To_File();
+    void Delete_Text_Files();
     void Run_Program();
     
 private:
@@ -109,6 +115,7 @@ void EA::Evaluate()
         diff = abs(pP->target_val - pol.at(i).output);
         pol.at(i).object_fitness.at(0) = diff;
         //This is where additional evaluation steps can occur like PaCcET
+        
         //For now the PaCcET fitness is equal to the objective fitness
         pol.at(i).PaCcET_fitness = pol.at(i).object_fitness.at(0);
     }
@@ -291,9 +298,140 @@ void EA::Output_Best_Policy_Info(int gen)
 
 
 //-------------------------------------------------------------------------
+//Stores the statistics of the population for each generation
+void EA::Store_Policy_Data()
+{
+    //Best Fitness
+    best_fitness.push_back(pol.at(0).PaCcET_fitness);
+    
+    
+    //Average Fitness
+    double sum = 0;
+    for (int p=0; p<pP->num_pol; p++)
+    {
+        sum += pol.at(p).PaCcET_fitness;
+    }
+    double ave = 0;
+    ave  = sum/pP->num_pol;
+    ave_fitness.push_back(ave);
+    
+    
+    //Worst Fitness
+    worst_fitness.push_back(pol.at(pol.size()-1).PaCcET_fitness);
+    
+    
+}
+
+
+//-------------------------------------------------------------------------
+//Writes the data to a txt file
+void EA::Write_Data_To_File()
+{
+    assert(best_fitness.size() == pP->gen_max);
+    assert(ave_fitness.size() == pP->gen_max);
+    assert(worst_fitness.size() == pP->gen_max);
+    
+    ofstream File1;
+    File1.open("Best_Fitness.txt", ios_base::app);
+    for (int i=0; i<best_fitness.size(); i++)
+    {
+        File1 << best_fitness.at(i) << "\t";
+    }
+    File1 << endl;
+    File1.close();
+    
+    
+    ofstream File2;
+    File2.open("Ave_Fitness.txt", ios_base::app);
+    for (int i=0; i<ave_fitness.size(); i++)
+    {
+        File2 << ave_fitness.at(i) << "\t";
+    }
+    File2 << endl;
+    File2.close();
+    
+    
+    ofstream File3;
+    File3.open("Worst_Fitness.txt", ios_base::app);
+    for (int i=0; i<worst_fitness.size(); i++)
+    {
+        File3 << worst_fitness.at(i) << "\t";
+    }
+    File3 << endl;
+    File3.close();
+    
+    ofstream File4;
+    File4.open("Best_Policy_Info.txt", ios_base::app);
+    File4 << "Policy Fitness" << "\t" << pol.at(0).PaCcET_fitness << endl;
+    File4 << "Policy Age" << "\t" << pol.at(0).age << endl;
+    File4 << "Policy X Vals" << "\t";
+    for (int i=0; i<pP->num_x_val; i++)
+    {
+        File4 << pol.at(0).x_val.at(i) << "\t";
+    }
+    File4 << endl;
+    File4.close();
+    
+    ofstream File5;
+    File5.open("Parameters.txt", ios_base::app);
+    File5 << "----------EA Parameters----------" << endl;
+    File5 << "Number of Policies" << "\t" << pP->num_pol << endl;
+    File5 << "Number of Objects" << "\t" << pP->num_object << endl;
+    File5 << "Number of Generations" << "\t" << pP->gen_max << endl;
+    File5 << "Mutation Rate" << "\t" << pP->mutation_rate*100 << endl;
+    File5 << "Mutation Range" << "\t" << pP->mutate_range << endl;
+    File5 << "Number of X Values" << "\t" << pP->num_x_val << endl;
+    File5 << "X Value Min/Max" << "\t" << "\t" << pP->x_val_min << "\t" << pP->x_val_max << endl;
+    File5 << "Target Value" << "\t" << pP->target_val << endl;
+}
+
+
+//-------------------------------------------------------------------------
+//Deltes the text files
+void EA::Delete_Text_Files()
+{
+    //
+    if( remove( "Best_Fitness.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Best_Fitness" );
+    else
+        puts( "Best_Fitness FILE SUCCESSFULLY DELETED" );
+    cout << endl;
+    
+    //
+    if( remove( "Ave_Fitness.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Ave_Fitness" );
+    else
+        puts( "Ave_Fitness FILE SUCCESSFULLY DELETED" );
+    cout << endl;
+    
+    //
+    if( remove( "Worst_Fitness.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Worst_Fitness" );
+    else
+        puts( "Worst_Fitness FILE SUCCESSFULLY DELETED" );
+    cout << endl;
+    
+    //
+    if( remove( "Best_Policy_Info.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Best_Policy_Info" );
+    else
+        puts( "Best_Policy_Info FILE SUCCESSFULLY DELETED" );
+    cout << endl;
+    
+    //
+    if( remove( "Parameters.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Parameters" );
+    else
+        puts( "Parameters FILE SUCCESSFULLY DELETED" );
+    cout << endl;
+}
+
+
+//-------------------------------------------------------------------------
 //Runs the entire program
 void EA::Run_Program()
 {
+    Delete_Text_Files();
     Build_Population();
     for (int gen=0; gen<pP->gen_max; gen++)
     {
@@ -302,6 +440,7 @@ void EA::Run_Program()
             EA_Process();
             Sort_Policies_By_PaCcET_Fitness();
             Output_Best_Policy_Info(gen);
+            Store_Policy_Data();
         }
         else
         {
@@ -309,8 +448,10 @@ void EA::Run_Program()
             Evaluate();
             Sort_Policies_By_PaCcET_Fitness();
             Output_Best_Policy_Info(gen);
+            Store_Policy_Data();
         }
     }
+    Write_Data_To_File();
 }
 
 
