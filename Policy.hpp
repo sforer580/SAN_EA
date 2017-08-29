@@ -30,10 +30,12 @@ public:
     
     vector<double> object_fitness;
     double PaCcET_fitness;
+    double linear_combo_fitness;
+    double fitness;
     int age;
     
     vector<double> x_val;
-    double output;
+    vector<double> output;
     
     
 private:

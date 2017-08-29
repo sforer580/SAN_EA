@@ -43,17 +43,18 @@ public:
     vector<double> worst_fitness;
 
     void Build_Population();
+    void Build_Target_Vals();
     void Run_Simulation();
     void Evaluate();
     int Binary_Select();
     void Downselect();
     void Mutation(Policy &M);
     void Repopulate();
-    struct Less_Than_Policy_PaCcET_Fitness;
-    void Sort_Policies_By_PaCcET_Fitness();
+    struct Less_Than_Policy_Fitness;
+    void Sort_Policies_By_Fitness();
     void EA_Process();
     void Output_Best_Policy_Info(int gen);
-    void Store_Policy_Data();
+    void Store_Fitness_Data();
     void Write_Data_To_File();
     void Delete_Text_Files();
     void Run_Program();
@@ -74,18 +75,30 @@ void EA::Build_Population()
         Policy P;
         pol.push_back(P);
         pol.at(i).age = 0;
+        pol.at(i).PaCcET_fitness = 5485933;
+        pol.at(i).fitness = 5485933;
+        pol.at(i).linear_combo_fitness = 5485933;
         for (int o=0; o<pP->num_object; o++)
         {
-            pol.at(i).object_fitness.push_back(0);
-            pol.at(i).output = 10000000;
-            for (int j=0; j<pP->num_x_val; j++)
-            {
-                pol.at(i).x_val.push_back(pP->x_val_min + (rand() / double(RAND_MAX))*(pP->x_val_max - pP->x_val_min));
-            }
-            assert(pol.at(i).x_val.size() == pP->num_x_val);
+            pol.at(i).object_fitness.push_back(5485933);
+            pol.at(i).output.push_back(5485933);
         }
+        for (int j=0; j<pP->num_x_val; j++)
+        {
+            pol.at(i).x_val.push_back(pP->x_val_min + (rand() / double(RAND_MAX))*(pP->x_val_max - pP->x_val_min));
+        }
+        assert(pol.at(i).x_val.size() == pP->num_x_val);
     }
     assert(pol.size() == pP->num_pol);
+}
+
+
+//-------------------------------------------------------------------------
+//Builds the vector of target values
+void EA::Build_Target_Vals()
+{
+    pP->target_vals.push_back(pP->target_val_1);
+    pP->target_vals.push_back(pP->target_val_2);
 }
 
 
@@ -111,13 +124,34 @@ void EA::Evaluate()
 {
     for (int i=0; i<pP->num_pol; i++)
     {
-        double diff;
-        diff = abs(pP->target_val - pol.at(i).output);
-        pol.at(i).object_fitness.at(0) = diff;
+        double diff_1;
+        diff_1 = abs(pP->target_val_1 - pol.at(i).output.at(0));
+        pol.at(i).object_fitness.at(0) = diff_1;
+        
+        double diff_2;
+        diff_2 = abs(pP->target_val_2 - pol.at(i).output.at(1));
+        pol.at(i).object_fitness.at(1) = diff_2;
         //This is where additional evaluation steps can occur like PaCcET
         
-        //For now the PaCcET fitness is equal to the objective fitness
-        pol.at(i).PaCcET_fitness = pol.at(i).object_fitness.at(0);
+        
+        //using linear combination
+        if (pP->linear_combo == 1)
+        {
+            double sum = 0;
+            for (int o=0; o<pP->num_object; o++)
+            {
+                sum += pol.at(i).object_fitness.at(o);
+            }
+            pol.at(i).linear_combo_fitness = sum;
+            pol.at(i).fitness = pol.at(i).linear_combo_fitness;
+        }
+        
+        //using first objective fitness
+        else
+        {
+            //For now the PaCcET fitness is equal to the objective fitness
+            pol.at(i).fitness = pol.at(i).object_fitness.at(0);
+        }
     }
 }
 
@@ -133,9 +167,10 @@ int EA::Binary_Select()
     {
         index_2 = rand() % pol.size();
     }
+    
     //winner is one with lower fitness
     //Can be switched for a maximization problem
-    if(pol.at(index_1).PaCcET_fitness < pol.at(index_2).PaCcET_fitness)
+    if(pol.at(index_1).fitness < pol.at(index_2).fitness)
     {
         loser = index_2;
         //cout << "loser" << "\t" <<  "agent" << "\t" << index_2 << endl;
@@ -227,22 +262,22 @@ void EA::EA_Process()
 
 //-------------------------------------------------------------------------
 //Sorts the population based on their fitness from lowest to highest
-struct EA::Less_Than_Policy_PaCcET_Fitness
+struct EA::Less_Than_Policy_Fitness
 {
     inline bool operator() (const Policy& struct1, const Policy& struct2)
     {
-        return (struct1.PaCcET_fitness < struct2.PaCcET_fitness);
+        return (struct1.fitness < struct2.fitness);
     }
 };
 
 
 //-------------------------------------------------------------------------
 //Sorts population
-void EA::Sort_Policies_By_PaCcET_Fitness()
+void EA::Sort_Policies_By_Fitness()
 {
     for (int i=0; i<pP->num_pol; i++)
     {
-        sort(pol.begin(), pol.end(), Less_Than_Policy_PaCcET_Fitness());
+        sort(pol.begin(), pol.end(), Less_Than_Policy_Fitness());
     }
 }
 
@@ -255,8 +290,20 @@ void EA::Output_Best_Policy_Info(int gen)
     {
         cout << "GENERATION" << "\t" << gen << endl;
         cout << "BEST POLICY" << endl;
-        cout << "TARGET" << "\t" << pP->target_val << endl;
-        cout << "OUTPUT" << "\t" << pol.at(0).output << endl;
+        cout << "FITNESS" << "\t" << pol.at(0).fitness << endl;
+        cout << "AGE" << "\t" << pol.at(0).age << endl;
+        cout << "TARGETS" << "\t";
+        for (int i=0; i<pP->num_object; i++)
+        {
+            cout << pP->target_vals.at(i) << "\t";
+        }
+        cout << endl;
+        cout << "OUTPUTS" << "\t";
+        for (int i=0; i<pP->num_object; i++)
+        {
+            cout << pol.at(0).output.at(i) << "\t";
+        }
+        cout << endl;
         cout << "X_VALS" << "\t";
         for (int i=0; i<pP->num_x_val; i++)
         {
@@ -264,10 +311,11 @@ void EA::Output_Best_Policy_Info(int gen)
         }
         cout << endl;
         cout << "PaCcET FITNESS" << "\t" << pol.at(0).PaCcET_fitness << endl;
+        cout << "LINEAR COMBINATION FITNESS" << "\t" << pol.at(0).linear_combo_fitness << endl;
         cout << "OBJECTIVE FITNESS" << "\t";
         for (int o=0; o<pP->num_object; o++)
         {
-            cout << pol.at(0).object_fitness.at(0) << "\t";
+            cout << pol.at(0).object_fitness.at(o) << "\t";
         }
         cout << endl;
         cout << endl;
@@ -277,19 +325,31 @@ void EA::Output_Best_Policy_Info(int gen)
     {
         cout << "FINAL GENERATION" << endl;
         cout << "BEST POLICY" << endl;
-        cout << "TARGET" << "\t" << pP->target_val << endl;
-        cout << "OUTPUT" << "\t" << pol.at(0).output << endl;
-        cout << "X_VALS" << "\t";
+        cout << "FITNESS" << "\t" << pol.at(0).fitness << endl;
+        cout << "AGE" << "\t" << pol.at(0).age << endl;
+        cout << "TARGETS" << "\t";
+        for (int i=0; i<pP->num_object; i++)
+        {
+            cout << pP->target_vals.at(i) << "\t";
+        }
+        cout << endl;
+        cout << "OUTPUTS" << "\t";
+        for (int i=0; i<pP->num_object; i++)
+        {
+            cout << pol.at(0).output.at(i) << "\t";
+        }
+        cout << endl;        cout << "X_VALS" << "\t";
         for (int i=0; i<pP->num_x_val; i++)
         {
             cout << pol.at(0).x_val.at(i) << "\t";
         }
         cout << endl;
         cout << "PaCcET FITNESS" << "\t" << pol.at(0).PaCcET_fitness << endl;
+        cout << "LINEAR COMBINATION FITNESS" << "\t" << pol.at(0).linear_combo_fitness << endl;
         cout << "OBJECTIVE FITNESS" << "\t";
         for (int o=0; o<pP->num_object; o++)
         {
-            cout << pol.at(0).object_fitness.at(0) << "\t";
+            cout << pol.at(0).object_fitness.at(o) << "\t";
         }
         cout << endl;
         cout << endl;
@@ -299,17 +359,17 @@ void EA::Output_Best_Policy_Info(int gen)
 
 //-------------------------------------------------------------------------
 //Stores the statistics of the population for each generation
-void EA::Store_Policy_Data()
+void EA::Store_Fitness_Data()
 {
     //Best Fitness
-    best_fitness.push_back(pol.at(0).PaCcET_fitness);
+    best_fitness.push_back(pol.at(0).fitness);
     
     
     //Average Fitness
     double sum = 0;
     for (int p=0; p<pP->num_pol; p++)
     {
-        sum += pol.at(p).PaCcET_fitness;
+        sum += pol.at(p).fitness;
     }
     double ave = 0;
     ave  = sum/pP->num_pol;
@@ -317,7 +377,7 @@ void EA::Store_Policy_Data()
     
     
     //Worst Fitness
-    worst_fitness.push_back(pol.at(pol.size()-1).PaCcET_fitness);
+    worst_fitness.push_back(pol.at(pol.size()-1).fitness);
     
     
 }
@@ -331,6 +391,8 @@ void EA::Write_Data_To_File()
     assert(ave_fitness.size() == pP->gen_max);
     assert(worst_fitness.size() == pP->gen_max);
     
+    
+    //
     ofstream File1;
     File1.open("Best_Fitness.txt", ios_base::app);
     for (int i=0; i<best_fitness.size(); i++)
@@ -341,6 +403,7 @@ void EA::Write_Data_To_File()
     File1.close();
     
     
+    //
     ofstream File2;
     File2.open("Ave_Fitness.txt", ios_base::app);
     for (int i=0; i<ave_fitness.size(); i++)
@@ -351,6 +414,7 @@ void EA::Write_Data_To_File()
     File2.close();
     
     
+    //
     ofstream File3;
     File3.open("Worst_Fitness.txt", ios_base::app);
     for (int i=0; i<worst_fitness.size(); i++)
@@ -360,29 +424,67 @@ void EA::Write_Data_To_File()
     File3 << endl;
     File3.close();
     
+    
+    //
     ofstream File4;
     File4.open("Best_Policy_Info.txt", ios_base::app);
-    File4 << "Policy Fitness" << "\t" << pol.at(0).PaCcET_fitness << endl;
+    File4 << "Policy Fitness" << "\t" << pol.at(0).fitness << endl;
     File4 << "Policy Age" << "\t" << pol.at(0).age << endl;
+    File4 << "Target Values" << "\t";
+    for (int i=0; i<pP->num_object; i++)
+    {
+        File4 << pP->target_vals.at(i) << "\t";
+    }
+    File4 << endl;
+    File4 << "Output Values" << "\t";
+    for (int i=0; i<pP->num_object; i++)
+    {
+        File4 << pol.at(0).output.at(i) << "\t";
+    }
+    File4 << endl;
     File4 << "Policy X Vals" << "\t";
     for (int i=0; i<pP->num_x_val; i++)
     {
         File4 << pol.at(0).x_val.at(i) << "\t";
     }
     File4 << endl;
+    File4 << "Policy PaCcET Fitness" << "\t" << pol.at(0).PaCcET_fitness << endl;
+    File4 << "Policy linear combination Fitness" << "\t" << pol.at(0).linear_combo_fitness << endl;
+    File4 << "Objective fitness" << "\t";
+    for (int o=0; o<pP->num_object; o++)
+    {
+        File4 << pol.at(0).object_fitness.at(o) << "\t";
+    }
+    File4 << endl;
     File4.close();
     
+    
+    //
     ofstream File5;
     File5.open("Parameters.txt", ios_base::app);
     File5 << "----------EA Parameters----------" << endl;
     File5 << "Number of Policies" << "\t" << pP->num_pol << endl;
-    File5 << "Number of Objects" << "\t" << pP->num_object << endl;
+    File5 << "Number of Objectives" << "\t" << pP->num_object << endl;
     File5 << "Number of Generations" << "\t" << pP->gen_max << endl;
     File5 << "Mutation Rate" << "\t" << pP->mutation_rate*100 << endl;
     File5 << "Mutation Range" << "\t" << pP->mutate_range << endl;
     File5 << "Number of X Values" << "\t" << pP->num_x_val << endl;
     File5 << "X Value Min/Max" << "\t" << "\t" << pP->x_val_min << "\t" << pP->x_val_max << endl;
-    File5 << "Target Value" << "\t" << pP->target_val << endl;
+    File5 << "Target Values" << "\t";
+    for (int i=0; i<pP->num_object; i++)
+    {
+        File5 << pP->target_vals.at(i) << "\t";
+    }
+    File5 << endl;
+    File5 << "Selection method" << "\t";
+    if (pP->linear_combo == 1)
+    {
+        File5 << "Linear combination" << endl;
+    }
+    else
+    {
+        File5 << "First objective" << endl;
+    }
 }
 
 
@@ -432,23 +534,24 @@ void EA::Delete_Text_Files()
 void EA::Run_Program()
 {
     Delete_Text_Files();
+    Build_Target_Vals();
     Build_Population();
     for (int gen=0; gen<pP->gen_max; gen++)
     {
         if (gen < pP->gen_max-1)
         {
             EA_Process();
-            Sort_Policies_By_PaCcET_Fitness();
+            Sort_Policies_By_Fitness();
             Output_Best_Policy_Info(gen);
-            Store_Policy_Data();
+            Store_Fitness_Data();
         }
         else
         {
             Run_Simulation();
             Evaluate();
-            Sort_Policies_By_PaCcET_Fitness();
+            Sort_Policies_By_Fitness();
             Output_Best_Policy_Info(gen);
-            Store_Policy_Data();
+            Store_Fitness_Data();
         }
     }
     Write_Data_To_File();
