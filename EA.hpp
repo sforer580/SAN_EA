@@ -28,6 +28,7 @@ using namespace std;
 class EA
 {
     friend class Parameters;
+    friend class PaCcET;
     friend class Simulator;
     friend class Policy;
     
@@ -45,16 +46,20 @@ public:
     void Build_Population();
     void Build_Target_Vals();
     void Run_Simulation();
-    void Evaluate();
+    void Get_Linear_Combo_Fitness();
+    void PaCcET_Fitness(PaCcET* pT, int i);
+    void Get_PaCcET_Fitness(PaCcET *pT);
+    void Evaluate(PaCcET *pT);
     int Binary_Select();
     void Downselect();
     void Mutation(Policy &M);
     void Repopulate();
     struct Less_Than_Policy_Fitness;
     void Sort_Policies_By_Fitness();
-    void EA_Process();
+    void EA_Process(PaCcET *pT);
     void Output_Best_Policy_Info(int gen);
     void Store_Fitness_Data();
+    void Write_Final_Pop_To_File();
     void Write_Data_To_File();
     void Delete_Text_Files();
     void Run_Program();
@@ -118,9 +123,62 @@ void EA::Run_Simulation()
     }
 }
 
+
+//-------------------------------------------------------------------------
+//Gets the linear combination fitness for each policy
+void EA::Get_Linear_Combo_Fitness()
+{
+    for (int i=0; i< pP->num_pol; i++)
+    {
+        double sum = 0;
+        for (int o=0; o<pP->num_object; o++)
+        {
+            sum += pol.at(i).object_fitness.at(o);
+        }
+        pol.at(i).linear_combo_fitness = sum;
+        pol.at(i).fitness = pol.at(i).linear_combo_fitness;
+    }
+}
+
+
+//-------------------------------------------------------------------------
+//Gets PaCcET fitness a policy
+void EA::PaCcET_Fitness(PaCcET* pT, int i)
+{
+    vector<double> MO;
+    vector<double>* pMO = &MO;
+    MO = pol.at(i).object_fitness;
+    vector<double> OMO = MO;
+    pT->execute_N_transform(pMO);
+    pol.at(i).fitness = MO.at(0) + MO.at(1);
+    pol.at(i).PaCcET_fitness = pol.at(i).fitness;
+}
+
+
+//-------------------------------------------------------------------------
+//Gets the PaCcET fitness for each policy
+void EA::Get_PaCcET_Fitness(PaCcET *pT)
+{
+    //cout << "XXXX"  << endl;
+    for (int i=0; i<pP->num_pol; i++)
+    {
+        pol.at(i).fitness = 0;
+        pT->Pareto_Check(pol.at(i).object_fitness);
+    }
+    
+    //cout << "XXyX"  << endl;
+    
+    for (int i=0; i<pP->num_pol; i++)
+    {
+            PaCcET_Fitness(pT, i);
+    }
+    //cout << "XyyX"  << endl;
+}
+
+
 //-------------------------------------------------------------------------
 //Evaluates each policies fitness scores for each objective
-void EA::Evaluate()
+void EA::Evaluate(PaCcET *pT)
 {
     for (int i=0; i<pP->num_pol; i++)
     {
@@ -131,25 +189,28 @@ void EA::Evaluate()
         double diff_2;
         diff_2 = abs(pP->target_val_2 - pol.at(i).output.at(1));
         pol.at(i).object_fitness.at(1) = diff_2;
-        //This is where additional evaluation steps can occur like PaCcET
         
+    }
         
-        //using linear combination
-        if (pP->linear_combo == 1)
+    //using linear combination
+    if (pP->linear_combo == 1)
+    {
+        Get_Linear_Combo_Fitness();
+    }
+    
+    //This is where additional evaluation steps can occur like PaCcET
+    //using PaCcET
+    else if (pP->PaCcET == 1)
+    {
+        Get_PaCcET_Fitness(pT);
+    }
+    
+    //using first objective fitness
+    else
+    {
+        //For now the PaCcET fitness is equal to the objective fitness
+        for (int i=0; i< pP->num_pol; i++)
         {
-            double sum = 0;
-            for (int o=0; o<pP->num_object; o++)
-            {
-                sum += pol.at(i).object_fitness.at(o);
-            }
-            pol.at(i).linear_combo_fitness = sum;
-            pol.at(i).fitness = pol.at(i).linear_combo_fitness;
-        }
-        
-        //using first objective fitness
-        else
-        {
-            //For now the PaCcET fitness is equal to the objective fitness
             pol.at(i).fitness = pol.at(i).object_fitness.at(0);
         }
     }
@@ -251,10 +312,10 @@ void EA::Repopulate()
 
 //-------------------------------------------------------------------------
 //Runs the entire EA loop process
-void EA::EA_Process()
+void EA::EA_Process(PaCcET *pT)
 {
     Run_Simulation();
-    Evaluate();
+    Evaluate(pT);
     Downselect();
     Repopulate();
 }
@@ -384,6 +445,28 @@ void EA::Store_Fitness_Data()
 
 
 //-------------------------------------------------------------------------
+//Writes final population to a txt file
+void EA::Write_Final_Pop_To_File()
+{
+    ofstream File6;
+    File6.open("Final_Population_Fitness.txt");
+    ofstream File7;
+    File7.open("Final_Population_Function_Values.txt");
+    for (int i=0; i<pP->num_pol; i++)
+    {
+        File6 << pol.at(i).fitness << endl;
+        for (int o=0; o<pP->num_object; o++)
+        {
+            File7 << pol.at(i).object_fitness.at(o) << "\t";
+        }
+        File7 << endl;
+    }
+    File6.close();
+    File7.close();
+}
+
+
+//-------------------------------------------------------------------------
 //Writes the data to a txt file
 void EA::Write_Data_To_File()
 {
@@ -481,10 +564,17 @@ void EA::Write_Data_To_File()
     {
         File5 << "Linear combination" << endl;
     }
+    else if (pP->PaCcET == 1)
+    {
+        File5 << "PaCcET" << endl;
+    }
     else
     {
         File5 << "First objective" << endl;
     }
+    File5.close();
+    
+    Write_Final_Pop_To_File();
 }
 
 
@@ -533,6 +623,15 @@ void EA::Delete_Text_Files()
 //Runs the entire program
 void EA::Run_Program()
 {
+    //For PaCcET use
+    PaCcET* pT;
+    if (pP->PaCcET == 1)
+    {
+        PaCcET T;
+        pT = &T;
+    }
+    
+    
     Delete_Text_Files();
     Build_Target_Vals();
     Build_Population();
@@ -540,7 +639,7 @@ void EA::Run_Program()
     {
         if (gen < pP->gen_max-1)
         {
-            EA_Process();
+            EA_Process(pT);
             Sort_Policies_By_Fitness();
             Output_Best_Policy_Info(gen);
             Store_Fitness_Data();
@@ -548,7 +647,7 @@ void EA::Run_Program()
         else
         {
             Run_Simulation();
-            Evaluate();
+            Evaluate(pT);
             Sort_Policies_By_Fitness();
             Output_Best_Policy_Info(gen);
             Store_Fitness_Data();

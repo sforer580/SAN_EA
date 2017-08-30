@@ -27,9 +27,9 @@ public:
     int num_pol = 100;                  //number of policies
     int to_kill = num_pol/2;
     int num_object = 2;                 //number of objectives
-    int gen_max = 50;                   //number of generations
+    int gen_max = 100;                   //number of generations
     double mutation_rate = 0.5;         //mutation rate
-    double mutate_range = 0.1;          //mutation range
+    double mutate_range = 0.05;          //mutation range
     int num_x_val = 4;
     double x_val_min = 0;
     double x_val_max = 10;
@@ -40,7 +40,8 @@ public:
     vector<double> target_vals;
     
     //Multi-objective selection method
-    int linear_combo = 1;               //0=off, 1=on
+    int linear_combo = 0;               //0=off, 1=on
+    int PaCcET = 1;                     //0=off, 1=on
     
     
 private:
