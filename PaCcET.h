@@ -474,7 +474,7 @@ double PaCcET::calc_v_B(vector<double> directional_ratios){
     static int jjj;
     
     //return 0.1; 0->6
-    while(margin>0.0001){
+    while(margin>0.01){
         jjj++;
         dominated=false;
         candidate=(upperbound+lowerbound)/2;
