@@ -10,6 +10,7 @@
 #define EA_hpp
 
 #include <iostream>
+#include <iostream>
 #include <cstdlib>
 #include <vector>
 #include <cmath>
@@ -623,6 +624,9 @@ void EA::Delete_Text_Files()
 //Runs the entire program
 void EA::Run_Program()
 {
+    clock_t t1, t2;
+    t1 = clock();
+    
     //For PaCcET use
     PaCcET* pT;
     if (pP->PaCcET == 1)
@@ -653,6 +657,12 @@ void EA::Run_Program()
             Store_Fitness_Data();
         }
     }
+    t2 = clock();
+    float diff ((float)t2-(float)t1);
+    //cout<<diff<<endl;
+    //system ("pause");
+    float seconds = diff / CLOCKS_PER_SEC;
+    cout << "run time" << "\t" << seconds << endl;
     Write_Data_To_File();
 }
 
