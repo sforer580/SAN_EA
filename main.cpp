@@ -40,14 +40,14 @@ public:
     int num_pol = 100;                  //number of policies
     int to_kill = num_pol/2;
     int num_object = 4;                 //number of objectives
-    int gen_max = 100;                   //number of generations
+    int gen_max = 1;                   //number of generations
     double mutation_rate = 0.5;         //mutation rate
     double mutate_range = 0.05;          //mutation range
     int num_x_val = 4;
     double x_val_min = 0;
     double x_val_max = 10;
     
-    //target function
+    //target functions
     double target_val_0 = 1*1 + cos(2) + sin(3) + tan(4);
     double target_val_1 = 2*2 + cos(3) + sin(4) + tan(1);
     double target_val_2 = 3*3 + cos(4) + sin(1) + tan(2);
@@ -57,6 +57,10 @@ public:
     //Multi-objective selection method
     bool linear_combo = false;               //falase=off, true=on
     bool PaCcET = true;                     //false=off, true=on
+    
+    
+    //Debug tools
+    bool PaCET_Debug = true;
     
     
 private:
@@ -949,6 +953,32 @@ void EA::Get_PaCcET_Fitness(PaCcET *pT)
     {
         pol.at(i).fitness = 0;
         pT->Pareto_Check(pol.at(i).object_fitness);
+        if (pP->PaCET_Debug == true)
+        {
+            if (pP-> gen_max != 1)
+            {
+                cout << "gen_max must equal 1" << endl;
+            }
+            assert (pP->gen_max == 1);
+            
+            //need to store the pfront here
+            pT->PFront_to_file();
+            
+            //store pcoords here
+            ofstream File7;
+            File7.open("Pcoords.txt", ios_base::app);
+            for (int i=0; i<pP->num_pol; i++)
+            {
+                for (int o=0; o<pP->num_object; o++)
+                {
+                    File7 << pol.at(i).object_fitness.at(0) << "\t";
+                }
+                File7 << endl;
+            }
+            File7 << endl;
+            File7.close();
+
+        }
     }
     
     //cout << "XXyX"  << endl;
@@ -1414,6 +1444,20 @@ void EA::Delete_Text_Files()
         perror( "ERROR DELETING FILE Parameters" );
     else
         puts( "Parameters FILE SUCCESSFULLY DELETED" );
+    cout << endl;
+    
+    //
+    if( remove( "Pcoords.txt" ) != 0 )
+        perror( "ERROR DELETING FILE Pcoords" );
+    else
+        puts( "Pcoords FILE SUCCESSFULLY DELETED" );
+    cout << endl;
+    
+    //
+    if( remove( "T_final_front.txt" ) != 0 )
+        perror( "ERROR DELETING FILE T_final_front" );
+    else
+        puts( "T_final_front FILE SUCCESSFULLY DELETED" );
     cout << endl;
 }
 
