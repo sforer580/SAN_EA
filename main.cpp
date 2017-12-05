@@ -21,6 +21,51 @@
 
 
 
+#ifndef Parameters_hpp
+#define Parameters_hpp
+
+using namespace std;
+
+
+class Parameters
+{
+    friend class EA;
+    friend class Simulator;
+    friend class Policy;
+    
+protected:
+    
+    
+public:
+    int num_pol = 100;                  //number of policies
+    int to_kill = num_pol/2;
+    int num_object = 4;                 //number of objectives
+    int gen_max = 100;                   //number of generations
+    double mutation_rate = 0.5;         //mutation rate
+    double mutate_range = 0.05;          //mutation range
+    int num_x_val = 4;
+    double x_val_min = 0;
+    double x_val_max = 10;
+    
+    //target function
+    double target_val_0 = 1*1 + cos(2) + sin(3) + tan(4);
+    double target_val_1 = 2*2 + cos(3) + sin(4) + tan(1);
+    double target_val_2 = 3*3 + cos(4) + sin(1) + tan(2);
+    double target_val_3 = 4*4 + cos(1) + sin(2) + tan(3);
+    vector<double> target_vals;
+    
+    //Multi-objective selection method
+    bool linear_combo = false;               //falase=off, true=on
+    bool PaCcET = true;                     //false=off, true=on
+    
+    
+private:
+};
+
+#endif /* Parameters_hpp */
+
+
+
 #ifndef Policy_hpp
 #define Policy_hpp
 
@@ -57,49 +102,6 @@ private:
 #endif /* Policy_hpp */
 
 
-
-#ifndef Parameters_hpp
-#define Parameters_hpp
-
-using namespace std;
-
-
-class Parameters
-{
-    friend class EA;
-    friend class Simulator;
-    friend class Policy;
-    
-protected:
-    
-    
-public:
-    int num_pol = 100;                  //number of policies
-    int to_kill = num_pol/2;
-    int num_object = 2;                 //number of objectives
-    int gen_max = 300;                   //number of generations
-    double mutation_rate = 0.5;         //mutation rate
-    double mutate_range = 0.05;          //mutation range
-    int num_x_val = 4;
-    double x_val_min = 0;
-    double x_val_max = 10;
-    
-    //target function
-    double target_val_1 = 1*1 + cos(2)*cos(2) + sin(3) + exp(4);
-    double target_val_2 = 4*4*4 + cos(3) + sin(2) + tan(1);
-    vector<double> target_vals;
-    
-    //Multi-objective selection method
-    int linear_combo = 0;               //0=off, 1=on
-    int PaCcET = 1;                     //0=off, 1=on
-    
-    
-private:
-};
-
-#endif /* Parameters_hpp */
-
-
 #ifndef Simulator_hpp
 #define Simulator_hpp
 
@@ -132,14 +134,23 @@ private:
 //Runs the entire simulation process
 void Simulator::Simulate(Policy* pPo)
 {
+    double sum_0;
+    sum_0 = (pPo->x_val.at(0)*pPo->x_val.at(0)) + cos(pPo->x_val.at(1)) + sin(pPo->x_val.at(2)) + tan(pPo->x_val.at(3));
+    pPo->output.at(0) = sum_0;
+    
+    
     double sum_1;
-    sum_1 = (pPo->x_val.at(0)*pPo->x_val.at(0)) + (cos(pPo->x_val.at(1))*cos(pPo->x_val.at(1))) + sin(pPo->x_val.at(2)) + exp(pPo->x_val.at(3));
-    pPo->output.at(0) = sum_1;
-    
-    
+    sum_1 = (pPo->x_val.at(1)*pPo->x_val.at(1)) + cos(pPo->x_val.at(2)) + sin(pPo->x_val.at(3)) + tan(pPo->x_val.at(0));
+    pPo->output.at(1) = sum_1;
+
+
     double sum_2;
-    sum_2 = (pPo->x_val.at(0)*pPo->x_val.at(0)*pPo->x_val.at(0)) + cos(pPo->x_val.at(1)) + sin(pPo->x_val.at(2)) + tan(pPo->x_val.at(3));
-    pPo->output.at(1) = sum_2;
+    sum_2 = (pPo->x_val.at(2)*pPo->x_val.at(2)) + cos(pPo->x_val.at(3)) + sin(pPo->x_val.at(0)) + tan(pPo->x_val.at(1));
+    pPo->output.at(2) = sum_2;
+
+    double sum_3;
+    sum_3 = (pPo->x_val.at(3)*pPo->x_val.at(3)) + cos(pPo->x_val.at(0)) + sin(pPo->x_val.at(1)) + tan(pPo->x_val.at(2));
+    pPo->output.at(3) = sum_3;
 }
 
 
@@ -154,10 +165,10 @@ void Simulator::Simulate(Policy* pPo)
 
 #define PaCcET_VERBOSE 0
 
-#define PFRONT_THRESHOLD 2500
+#define PFRONT_THRESHOLD 50
 #define PFRONT_BUFFER 10
 
-#define OBJECTIVES 2
+#define OBJECTIVES 4
 #define PI 3.1415
 
 #ifndef VECTOR_INCLUDE
@@ -677,7 +688,7 @@ double PaCcET::calc_v_hp(vector<double> directional_ratios){
     }
     upperbound = 2*sqrt(upperbound)+0.1;
     double margin=upperbound-lowerbound;
-    while(margin>0.0001){
+    while(margin>0.01){
         bool dominated=false;
         double candidate=(upperbound+lowerbound)/2;
         for(int i=0; i<I; i++){
@@ -874,8 +885,10 @@ void EA::Build_Population()
 //Builds the vector of target values
 void EA::Build_Target_Vals()
 {
+    pP->target_vals.push_back(pP->target_val_0);
     pP->target_vals.push_back(pP->target_val_1);
     pP->target_vals.push_back(pP->target_val_2);
+    pP->target_vals.push_back(pP->target_val_3);
 }
 
 
@@ -954,25 +967,38 @@ void EA::Evaluate(PaCcET *pT)
 {
     for (int i=0; i<pP->num_pol; i++)
     {
-        double diff_1;
-        diff_1 = abs(pP->target_val_1 - pol.at(i).output.at(0));
-        pol.at(i).object_fitness.at(0) = diff_1;
+    	pol.at(i).object_fitness.at(0) = 0;
+    	pol.at(i).object_fitness.at(1) = 0;
+    	pol.at(i).object_fitness.at(2) = 0;
+    	pol.at(i).object_fitness.at(3) = 0;
+
+        double diff_0;
+        diff_0 = abs(pP->target_val_0 - pol.at(i).output.at(0));
+        pol.at(i).object_fitness.at(0) = diff_0;
         
+        double diff_1;
+        diff_1 = abs(pP->target_val_1 - pol.at(i).output.at(1));
+        pol.at(i).object_fitness.at(1) = diff_1;
+
         double diff_2;
-        diff_2 = abs(pP->target_val_2 - pol.at(i).output.at(1));
-        pol.at(i).object_fitness.at(1) = diff_2;
+        diff_2 = abs(pP->target_val_2 - pol.at(i).output.at(2));
+        pol.at(i).object_fitness.at(2) = diff_2;
+
+        double diff_3;
+        diff_3 = abs(pP->target_val_3 - pol.at(i).output.at(3));
+        pol.at(i).object_fitness.at(3) = diff_3;
         
     }
     
     //using linear combination
-    if (pP->linear_combo == 1)
+    if (pP->linear_combo == true)
     {
         Get_Linear_Combo_Fitness();
     }
     
     //This is where additional evaluation steps can occur like PaCcET
     //using PaCcET
-    else if (pP->PaCcET == 1)
+    else if (pP->PaCcET == true)
     {
         Get_PaCcET_Fitness(pT);
     }
@@ -983,7 +1009,7 @@ void EA::Evaluate(PaCcET *pT)
         //For now the PaCcET fitness is equal to the objective fitness
         for (int i=0; i< pP->num_pol; i++)
         {
-            pol.at(i).fitness = pol.at(i).object_fitness.at(0);
+            //pol.at(i).fitness = pol.at(i).object_fitness.at(0);
         }
     }
 }
@@ -1332,11 +1358,11 @@ void EA::Write_Data_To_File(float seconds)
     }
     File5 << endl;
     File5 << "Selection method" << "\t";
-    if (pP->linear_combo == 1)
+    if (pP->linear_combo == true)
     {
         File5 << "Linear combination" << endl;
     }
-    else if (pP->PaCcET == 1)
+    else if (pP->PaCcET == true)
     {
         File5 << "PaCcET" << endl;
     }
